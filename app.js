@@ -38,7 +38,7 @@ async function loadData() {
         } else {
             ALL_DEPUTIES = json.dados;
             // Fallback: se o header falhar mas tiver no JSON
-            if (!lastModifiedHeader && json.metadata && json.metadata.data_atualizacao) {
+            if (json.metadata && json.metadata.data_atualizacao) {
                 document.getElementById('lastUpdate').innerText = `Atualizado em: ${json.metadata.data_atualizacao}`;
             }
         }

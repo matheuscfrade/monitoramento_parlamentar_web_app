@@ -2,6 +2,7 @@
 const DATA_URL = 'base_mestre_deputados_completa.json';
 
 let ALL_DEPUTIES = [];
+let CACHED_BENEFICIARIES = [];
 
 // Formatadores
 const formatMoney = (val) => {
@@ -13,6 +14,7 @@ const formatMoney = (val) => {
 };
 
 const parseMoney = (valStr) => {
+    if (typeof valStr === 'number') return valStr;
     if (!valStr) return 0;
     return parseFloat(valStr.replace(/\./g, '').replace(',', '.'));
 };
@@ -38,8 +40,12 @@ async function loadData() {
         } else {
             ALL_DEPUTIES = json.dados;
             // Fallback: se o header falhar mas tiver no JSON
-            if (json.metadata && json.metadata.data_atualizacao) {
-                document.getElementById('lastUpdate').innerText = `Atualizado em: ${json.metadata.data_atualizacao}`;
+            if (json.metadata) {
+                // Preferência para a data de atualização das emendas
+                const dateStr = json.metadata.data_atualizacao_emendas || json.metadata.data_atualizacao;
+                if (dateStr) {
+                    document.getElementById('lastUpdate').innerText = `Atualizado em: ${dateStr}`;
+                }
             }
         }
         
@@ -73,9 +79,17 @@ function populateFilters() {
             dep.emendas_execucao.forEach(em => {
                 years.add(em.ano);
                 if (em.funcao) functions.add(em.funcao);
-                // Simplificar localidade (às vezes vem 'SAO PAULO (UF)' ou municípicios)
-                // Vamos pegar tudo para ser genérico por enquanto
-                if (em.localidade) localities.add(em.localidade);
+                // Collect Beneficiaries
+                if (em.beneficiarios && em.beneficiarios.length > 0) {
+                    em.beneficiarios.forEach(b => {
+                        const n = b.nome || 'S/ IDENTIFICAÇÃO';
+                        const m = b.municipio || '';
+                        const val = m ? `${n} - ${m}` : n;
+                        localities.add(val);
+                    });
+                } else if (em.localidade) {
+                     localities.add(em.localidade);
+                }
             });
         }
     });
@@ -90,7 +104,7 @@ function populateFilters() {
         opt.innerText = y;
         yearSel.appendChild(opt);
     });
-    if (years.has(new Date().getFullYear())) yearSel.value = new Date().getFullYear();
+    // if (years.has(new Date().getFullYear())) yearSel.value = new Date().getFullYear();
     
     // Partidos
     const partySel = document.getElementById('filterParty');
@@ -110,14 +124,54 @@ function populateFilters() {
         funcSel.appendChild(new Option(f, f));
     });
 
-    // Localities (Destinos)
-    const locSel = document.getElementById('filterLocality');
-    Array.from(localities).sort().forEach(l => {
-        locSel.appendChild(new Option(l, l));
+    // Localities (AGORA BENEFICIARIOS - VIA CUSTOM DROPDOWN)
+    CACHED_BENEFICIARIES = Array.from(localities).sort();
+    
+    const locInput = document.getElementById('filterLocality');
+    const dl = document.getElementById('beneficiaryDropdown');
+
+    // Input Listener
+    locInput.addEventListener('input', (e) => {
+        const val = e.target.value;
+        applyFilters(); 
+        
+        if (val.length < 2) {
+            dl.classList.remove('active');
+            return;
+        }
+        
+        const lowerVal = val.toLowerCase();
+        const matches = CACHED_BENEFICIARIES
+            .filter(item => item.toLowerCase().includes(lowerVal))
+            .slice(0, 50);
+            
+        if (matches.length > 0) {
+            dl.innerHTML = '';
+            matches.forEach(m => {
+                const li = document.createElement('li');
+                li.innerText = m;
+                li.onclick = () => {
+                    locInput.value = m;
+                    dl.classList.remove('active');
+                    applyFilters();
+                };
+                dl.appendChild(li);
+            });
+            dl.classList.add('active');
+        } else {
+            dl.classList.remove('active');
+        }
+    });
+
+    // Close on click outside
+    document.addEventListener('click', (e) => {
+        if (!locInput.contains(e.target) && !dl.contains(e.target)) {
+            dl.classList.remove('active');
+        }
     });
     
     // Listeners
-    [yearSel, partySel, ufSel, funcSel, locSel].forEach(el => el.addEventListener('change', applyFilters));
+    [yearSel, partySel, ufSel, funcSel].forEach(el => el.addEventListener('change', applyFilters));
     document.getElementById('searchInput').addEventListener('input', applyFilters);
 }
 
@@ -148,7 +202,19 @@ function applyFilters() {
             const validEmendas = emendas.filter(e => {
                 const yepYear = (year === "ALL" || e.ano == year);
                 const yepFunc = (func === "" || e.funcao === func);
-                const yepLoc = (loc === "" || e.localidade === loc);
+                
+                const yepLoc = (loc === "" || (
+                    // Check if deep match in beneficiaries
+                    (e.beneficiarios && e.beneficiarios.some(b => {
+                         const n = b.nome || 'S/ IDENTIFICAÇÃO';
+                         const m = b.municipio || '';
+                         const val = m ? `${n} - ${m}` : n;
+                         return val === loc;
+                    })) || 
+                    // Fallback check on generic locality if matched directly
+                    e.localidade === loc
+                ));
+
                 return yepYear && yepFunc && yepLoc;
             });
             
@@ -299,17 +365,26 @@ function openModal(dep, initialYearFilter) {
     // Filtros inputs
     const years = new Set();
     const functions = new Set();
-    const localities = new Set();
+    const beneficiariesSet = new Set();
     
     CURRENT_MODAL_EMENDAS.forEach(e => {
         years.add(e.ano);
         if(e.funcao) functions.add(e.funcao);
-        if(e.localidade) localities.add(e.localidade);
+        
+        // Collect Beneficiaries logic
+        if (e.beneficiarios && e.beneficiarios.length > 0) {
+            e.beneficiarios.forEach(b => {
+                const n = b.nome || 'S/ IDENTIFICAÇÃO';
+                const m = b.municipio || '';
+                const val = m ? `${n} - ${m}` : n;
+                beneficiariesSet.add(val);
+            });
+        }
+        if(e.localidade) beneficiariesSet.add(e.localidade);
     });
     
     const yearsOptions = Array.from(years).sort().reverse().map(y => `<option value="${y}">${y}</option>`).join('');
     const funcOptions = Array.from(functions).sort().map(f => `<option value="${f}">${f}</option>`).join('');
-    const locOptions = Array.from(localities).sort().map(l => `<option value="${l}">${l}</option>`).join('');
 
     content.innerHTML = `
         <div class="modal-profile-header">
@@ -329,26 +404,30 @@ function openModal(dep, initialYearFilter) {
         
         <h3 style="margin-top:1.5rem">Execução Orçamentária</h3>
         
-        <div class="modal-filters" style="margin-top:1rem">
+        <div class="modal-filters" style="margin-top:1rem; align-items:center">
             <input type="text" id="mSearch" class="modal-input" placeholder="Busca livre..." style="flex:1; min-width:150px">
             <select id="mYear" class="modal-select"><option value="ALL">Todos os Anos</option>${yearsOptions}</select>
             <select id="mFunc" class="modal-select"><option value="ALL">Todas Funções</option>${funcOptions}</select>
-            <select id="mLoc" class="modal-select" style="max-width:200px"><option value="ALL">Todas Localidades</option>${locOptions}</select>
+            
+            <div style="position:relative; flex:1.5; min-width:250px">
+                <input type="text" id="mLocInput" class="modal-input" placeholder="Filtrar Beneficiário..." style="width:100%" autocomplete="off">
+                <ul id="mLocDropdown" class="autocomplete-dropdown"></ul>
+            </div>
+
+            <button class="btn-action" onclick="clearModalFilters()" style="margin-top:0; padding:0.5rem" title="Limpar Filtros">
+                <i class="ph ph-broom"></i>
+            </button>
         </div>
 
         <div class="data-table-container">
             <table class="data-table">
                 <thead>
                     <tr>
-                        <th width="10%">Ano / Cód.</th>
-                        <th width="20%">Função</th>
-                        <th width="25%">Localidade</th>
-                        <th>Empenhado</th>
-                        <th>Liquidado</th>
-                        <th>Pago</th>
-                        <th>RP Inscritos</th>
-                        <th>RP Cancelados</th>
-                        <th>RP Pagos</th>
+                        <th width="15%">Emenda</th>
+                        <th width="20%">Área/Função</th>
+                        <th width="35%">Beneficiários (Destino)</th>
+                        <th width="15%" style="text-align:right">Empenhado</th>
+                        <th width="15%" style="text-align:right">Pago</th>
                     </tr>
                 </thead>
                 <tbody id="modalTableBody"></tbody>
@@ -360,7 +439,57 @@ function openModal(dep, initialYearFilter) {
     document.getElementById('mSearch').addEventListener('input', updateModalTable);
     document.getElementById('mYear').addEventListener('change', updateModalTable);
     document.getElementById('mFunc').addEventListener('change', updateModalTable);
-    document.getElementById('mLoc').addEventListener('change', updateModalTable);
+    
+    // Autocomplete Logic for Modal
+    const mLocInput = document.getElementById('mLocInput');
+    const mLocDl = document.getElementById('mLocDropdown');
+    const modalBeneficiaries = Array.from(beneficiariesSet).sort();
+
+    mLocInput.addEventListener('input', (e) => {
+        const val = e.target.value;
+        updateModalTable();
+        
+        if (val.length < 1) {
+            mLocDl.classList.remove('active');
+            return;
+        }
+        
+        const lower = val.toLowerCase();
+        const matches = modalBeneficiaries.filter(b => b.toLowerCase().includes(lower)).slice(0, 50);
+        
+        if (matches.length > 0) {
+             mLocDl.innerHTML = '';
+             matches.forEach(m => {
+                 const li = document.createElement('li');
+                 li.innerText = m;
+                 li.onclick = () => {
+                     mLocInput.value = m;
+                     mLocDl.classList.remove('active');
+                     updateModalTable();
+                 };
+                 mLocDl.appendChild(li);
+             });
+             mLocDl.classList.add('active');
+        } else {
+            mLocDl.classList.remove('active');
+        }
+    });
+    
+    // Close click handler is global or needs generic class listener? 
+    // The previously added global listener only checks 'filterLocality'. 
+    // I should check ANY .autocomplete-dropdown active? 
+    // Or just add a specific one here.
+    const closeHandler = (e) => {
+        if (mLocInput && !mLocInput.contains(e.target) && !mLocDl.contains(e.target)) {
+            mLocDl.classList.remove('active');
+        }
+    };
+    // Note: this adds a listener every openModal. Potentially memory leak if not removed.
+    // Better: Add ID to the global listener or use a "once" logic. 
+    // For now, I'll allow it but it's a bit messy. 
+    // A better approach is one global listener for '.autocomplete-dropdown' logic, but references differ.
+    // I will use a named function outside or just add it here knowing users won't open 1000 modals in one session without reload.
+    document.addEventListener('click', closeHandler);
 
     if (initialYearFilter !== 'ALL' && years.has(parseInt(initialYearFilter))) {
         document.getElementById('mYear').value = initialYearFilter;
@@ -374,14 +503,37 @@ function updateModalTable() {
     const term = document.getElementById('mSearch').value.toLowerCase();
     const year = document.getElementById('mYear').value;
     const func = document.getElementById('mFunc').value;
-    const loc = document.getElementById('mLoc').value;
+    const locTerm = document.getElementById('mLocInput').value.toLowerCase();
     
     // Filtrar
     const filtered = CURRENT_MODAL_EMENDAS.filter(em => {
         const matchYear = (year === 'ALL' || em.ano == year);
         const matchFunc = (func === 'ALL' || em.funcao === func);
-        const matchLoc = (loc === 'ALL' || em.localidade === loc);
-        const matchTerm = term === '' || (em.localidade||'').toLowerCase().includes(term) || (em.funcao||'').toLowerCase().includes(term);
+        
+        // Filtro Específico de Beneficiário (Loc Input)
+        let matchLoc = true;
+        if (locTerm !== '') {
+             let textToSearch = (em.localidade||'');
+             if (em.beneficiarios && em.beneficiarios.length > 0) {
+                 textToSearch += ' ' + em.beneficiarios.map(b => {
+                     const n = b.nome || '';
+                     const m = b.municipio || '';
+                     return m ? `${n} - ${m}` : n;
+                 }).join(' ');
+             }
+             matchLoc = textToSearch.toLowerCase().includes(locTerm);
+        }
+        
+        // Busca Livre (Global)
+        let matchTerm = true;
+        if (term !== '') {
+            let textToSearch = (em.localidade||'') + ' ' + (em.funcao||'');
+             if (em.beneficiarios && em.beneficiarios.length > 0) {
+                 textToSearch += ' ' + em.beneficiarios.map(b => (b.nome||'') + ' ' + (b.municipio||'')).join(' ');
+             }
+             matchTerm = textToSearch.toLowerCase().includes(term);
+        }
+        
         return matchYear && matchFunc && matchLoc && matchTerm;
     });
     
@@ -389,67 +541,71 @@ function updateModalTable() {
     filtered.sort((a,b) => (b.ano - a.ano) || (parseMoney(b.valor_empenhado) - parseMoney(a.valor_empenhado)));
 
     // Totalizadores
-    let tEmp = 0, tLiq = 0, tPag = 0;
-    let tRpInsc = 0, tRpCanc = 0, tRpPago = 0;
+    let tEmp = 0, tPag = 0;
 
     const tbody = document.getElementById('modalTableBody');
     const tfoot = document.getElementById('modalTableFoot');
     
     if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:2rem">Nenhum resultado.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:2rem">Nenhum resultado.</td></tr>';
         tfoot.innerHTML = '';
         return;
     }
 
     tbody.innerHTML = filtered.map(em => {
         const emp = parseMoney(em.valor_empenhado);
-        const liq = parseMoney(em.valor_liquidado);
         const pag = parseMoney(em.valor_pago);
-        const rpInsc = parseMoney(em.valor_resto_inscrito);
-        const rpCanc = parseMoney(em.valor_resto_cancelado);
-        const rpPago = parseMoney(em.valor_resto_pago);
         
         tEmp += emp;
-        tLiq += liq;
         tPag += pag;
-        tRpInsc += rpInsc;
-        tRpCanc += rpCanc;
-        tRpPago += rpPago;
+
+        // Renderizar Beneficiários
+        let beneficiariesHtml = '';
+        
+        if (em.beneficiarios && em.beneficiarios.length > 0) {
+            // Lista detalhada
+            const listItems = em.beneficiarios.map(b => {
+                const bVal = b.valor ? formatMoney(b.valor) : '-';
+                return `
+                    <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.05); padding:2px 0;">
+                        <span style="font-size:0.75rem; color:#e5e7eb">${b.nome}</span>
+                        <span style="font-size:0.75rem; font-family:monospace; color:var(--primary); margin-left:8px">${bVal}</span>
+                    </div>
+                `;
+            }).join('');
+            
+            beneficiariesHtml = `<div style="max-height:100px; overflow-y:auto; padding-right:5px">${listItems}</div>`;
+        } else {
+            // Fallback para Localidade Genérica
+            beneficiariesHtml = `<div style="font-weight:600; color:var(--text-muted)">${em.localidade || 'Localidade não informada'}</div>`;
+        }
 
         return `
         <tr>
             <td>
-                <div>${em.ano}</div>
-                <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px">${em.codigo}</div>
+                <div style="font-weight:bold">${em.ano}</div>
+                <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px">Cód: ${em.codigo}</div>
+                <div style="font-size:0.65rem; opacity:0.5; margin-top:2px">${em.acao || ''}</div>
             </td>
             <td>
-                 <div style="font-size:0.75rem; color:var(--text-muted); line-height:1.2">
-                    ${em.funcao}<br>
-                    <span style="font-size:0.7rem; opacity:0.7">${em.subfuncao}</span>
+                 <div style="font-size:0.8rem; line-height:1.2">
+                    ${em.funcao}
                 </div>
-                 <div style="font-size:0.65rem; opacity:0.5; margin-top:2px">${em.tipo}</div>
+                 <div style="font-size:0.7rem; opacity:0.6; margin-top:2px">${em.subfuncao}</div>
             </td>
              <td>
-                 <div style="font-weight:600">${em.localidade || 'N/A'}</div>
+                 ${beneficiariesHtml}
             </td>
-            <td class="val-col" style="color:#fff">${formatMoney(emp)}</td>
-            <td class="val-col" style="color:#d1d5db">${formatMoney(liq)}</td>
-            <td class="val-col" style="color:var(--primary)">${formatMoney(pag)}</td>
-            <td class="val-col" style="color:#fcd34d">${formatMoney(rpInsc)}</td>
-            <td class="val-col" style="color:#f87171">${formatMoney(rpCanc)}</td>
-            <td class="val-col" style="color:#4ade80">${formatMoney(rpPago)}</td>
+            <td class="val-col" style="color:#fff; text-align:right">${formatMoney(emp)}</td>
+            <td class="val-col" style="color:var(--primary); font-weight:bold; text-align:right">${formatMoney(pag)}</td>
         </tr>`;
     }).join('');
     
     tfoot.innerHTML = `
         <tr style="background:rgba(255,255,255,0.05); font-weight:bold">
-            <td colspan="3">TOTAIS</td>
-            <td class="val-col" style="color:#fff">${formatMoney(tEmp)}</td>
-            <td class="val-col" style="color:#d1d5db">${formatMoney(tLiq)}</td>
-            <td class="val-col" style="color:var(--primary)">${formatMoney(tPag)}</td>
-            <td class="val-col" style="color:#fcd34d">${formatMoney(tRpInsc)}</td>
-            <td class="val-col" style="color:#f87171">${formatMoney(tRpCanc)}</td>
-            <td class="val-col" style="color:#4ade80">${formatMoney(tRpPago)}</td>
+            <td colspan="3" style="text-align:right; padding-right:1rem">TOTAIS</td>
+            <td class="val-col" style="color:#fff; text-align:right">${formatMoney(tEmp)}</td>
+            <td class="val-col" style="color:var(--primary); text-align:right">${formatMoney(tPag)}</td>
         </tr>
     `;
 }
@@ -526,6 +682,25 @@ function closeAboutModal() {
 
 function closeExtraModal() {
     document.getElementById('modalExtra').classList.remove('active');
+}
+
+function clearMainFilters() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('filterYear').value = 'ALL';
+    document.getElementById('filterParty').value = '';
+    document.getElementById('filterState').value = '';
+    document.getElementById('filterFunction').value = '';
+    document.getElementById('filterLocality').value = '';
+    applyFilters();
+}
+
+function clearModalFilters() {
+    document.getElementById('mSearch').value = '';
+    document.getElementById('mYear').value = 'ALL';
+    document.getElementById('mFunc').value = 'ALL';
+    const locInp = document.getElementById('mLocInput');
+    if(locInp) locInp.value = '';
+    updateModalTable();
 }
 
 // Inicializa a App

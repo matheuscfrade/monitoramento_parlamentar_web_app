@@ -23,7 +23,8 @@
                 <i class="ph-fill ph-bank"></i>
                 <div style="display:flex; flex-direction:column">
                     <h1>Monitor Parlamentar</h1>
-                    <span id="lastUpdate" style="font-size:0.7rem; color:var(--text-muted); font-weight:400">Atualizado em: ...</span>
+                    <span style="font-size:0.85rem; color:var(--text-muted); margin-bottom:4px">Consulte dados dos deputados e emendas parlamentares</span>
+                    <span id="lastUpdate" style="font-size:0.7rem; color:var(--text-muted); font-weight:400; opacity: 0.8">Atualizado em: ...</span>
                     <div role="button" onclick="openAboutModal()" style="margin-top: 6px; cursor: pointer; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; padding: 2px 8px; color: #fff; font-size: 0.65rem; display: flex; align-items: center; gap: 4px; width: fit-content; transition: background 0.2s;">
                         <i class="ph-bold ph-info"></i> Sobre os Dados
                     </div>
@@ -68,11 +69,16 @@
             </div>
 
             <div class="filter-group">
-                <label><i class="ph ph-buildings"></i> Destino (Mun/UF)</label>
-                <select id="filterLocality">
-                    <option value="">Todos</option>
-                </select>
+                <label><i class="ph ph-buildings"></i> Beneficiário Final</label>
+                <div style="position:relative">
+                    <input type="text" id="filterLocality" placeholder="Digite para buscar..." autocomplete="off">
+                    <ul id="beneficiaryDropdown" class="autocomplete-dropdown"></ul>
+                </div>
             </div>
+
+            <button class="btn-action" onclick="clearMainFilters()" style="margin-top:0; border-radius:50px; background:rgba(255,255,255,0.05)">
+                <i class="ph ph-broom"></i> Limpar
+            </button>
         </section>
 
         <!-- STATS BAR -->
@@ -142,15 +148,16 @@
                     <a href="https://dadosabertos.camara.leg.br/" target="_blank" class="btn-action" style="justify-content: center;">
                         <i class="ph ph-link"></i> Dados Abertos da Câmara dos Deputados
                     </a>
-                    <a href="https://api.portaldatransparencia.gov.br/" target="_blank" class="btn-action" style="justify-content: center;">
-                        <i class="ph ph-link"></i> API do Portal da Transparência (CGU)
+                    <a href="https://portaldatransparencia.gov.br/download-de-dados" target="_blank" class="btn-action" style="justify-content: center;">
+                        <i class="ph ph-link"></i> Portal da Transparência (CGU)
                     </a>
                 </div>
 
                 <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 8px; font-size: 0.85rem; color: var(--text-muted); text-align: left;">
                     <p style="margin-bottom: 0.5rem;"><strong>⚠️ Aviso de Disponibilidade:</strong></p>
                     <p>
-                        A exibição dos dados depende da atualização das bases oficiais. Podem ocorrer <strong>lapsos temporais</strong> entre a execução orçamentária real e a disponibilização na API (ex: emendas do ano corrente podem não estar disponíveis ainda). Por limitações da API do Portal da Transparência, os dados de emendas também podem não trazer os mesmos detalhamentos disponíveis no site oficial (ex: nomes de localidade de destino das emendas podem não ser exibidos, estarem aglutinados pelo nome do estado ou termos como Estadual, Nacional, etc).
+                        A precisão e atualização dos dados exibidos dependem diretamente das bases oficiais do governo. Ressaltamos que pode haver um intervalo de tempo (delay) entre a execução real das emendas e a disponibilização pública dos arquivos pelo Portal da Transparência.
+                        Alguns beneficiários podem não estar listados devido a forma com que a emenda foi cadastrada. Exemplos: emendas com beneficiário com o nome de uma UF ou o termo Nacional.
                     </p>
                 </div>
                 
@@ -161,6 +168,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=2"></script>
+    <script src="app.js?v=4"></script>
 </body>
 </html>

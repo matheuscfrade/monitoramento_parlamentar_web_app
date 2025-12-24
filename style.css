@@ -108,7 +108,7 @@ body {
     gap: 5px;
 }
 
-.filter-group select {
+.filter-group select, .filter-group input {
     background: transparent;
     border: none;
     color: var(--text-main);
@@ -116,6 +116,19 @@ body {
     outline: none;
     cursor: pointer;
     min-width: 80px;
+}
+
+.filter-group input {
+    cursor: text;
+    min-width: 200px;
+}
+
+#filterLocality {
+    min-width: 400px;
+}
+
+.filter-group input::placeholder {
+    color: rgba(255,255,255,0.3);
 }
 
 .filter-group select option {
@@ -601,4 +614,41 @@ body {
 .fixed-footer a:hover {
     text-decoration: underline;
     color: var(--accent);
+}
+
+/* AUTOCOMPLETE CUSTOMIZADO */
+.autocomplete-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    min-width: 400px;
+    max-height: 300px;
+    overflow-y: auto;
+    background: var(--bg-card);
+    border: 1px solid var(--primary);
+    border-radius: 8px;
+    z-index: 1000;
+    list-style: none;
+    padding: 0;
+    margin-top: 5px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    display: none;
+}
+
+.autocomplete-dropdown.active {
+    display: block;
+}
+
+.autocomplete-dropdown li {
+    padding: 10px 15px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    font-size: 0.85rem;
+    color: var(--text-main);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.autocomplete-dropdown li:hover {
+    background: rgba(59, 130, 246, 0.2);
 }

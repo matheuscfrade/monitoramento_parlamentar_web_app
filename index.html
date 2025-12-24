@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitor Parlamentar | Emendas 360º</title>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="style.css">
+    <!-- Ícones (Phosphor Icons) -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- HEADER -->
+        <header class="glass-header">
+            <div class="logo-area">
+                <i class="ph-fill ph-bank"></i>
+                <div style="display:flex; flex-direction:column">
+                    <h1>Monitor Parlamentar</h1>
+                    <span id="lastUpdate" style="font-size:0.7rem; color:var(--text-muted); font-weight:400">Atualizado em: ...</span>
+                    <div role="button" onclick="openAboutModal()" style="margin-top: 6px; cursor: pointer; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; padding: 2px 8px; color: #fff; font-size: 0.65rem; display: flex; align-items: center; gap: 4px; width: fit-content; transition: background 0.2s;">
+                        <i class="ph-bold ph-info"></i> Sobre os Dados
+                    </div>
+                </div>
+            </div>
+            
+            <div class="search-bar">
+                <i class="ph ph-magnifying-glass"></i>
+                <input type="text" id="searchInput" placeholder="Busque por nome...">
+            </div>
+        </header>
+
+        <!-- FILTERS BAR -->
+        <section class="filters-bar">
+            <div class="filter-group">
+                <label><i class="ph ph-calendar-blank"></i> Ano</label>
+                <select id="filterYear">
+                    <option value="ALL">Todo o Histórico</option>
+                    <!-- Preenchido via JS -->
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label><i class="ph ph-flag"></i> Partido</label>
+                <select id="filterParty">
+                    <option value="">Todos</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label><i class="ph ph-map-pin"></i> Estado (Dep)</label>
+                <select id="filterState">
+                    <option value="">Todos</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label><i class="ph ph-first-aid"></i> Área (Função)</label>
+                <select id="filterFunction">
+                    <option value="">Todas</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label><i class="ph ph-buildings"></i> Destino (Mun/UF)</label>
+                <select id="filterLocality">
+                    <option value="">Todos</option>
+                </select>
+            </div>
+        </section>
+
+        <!-- STATS BAR -->
+        <section class="stats-bar" id="statsBar">
+            <div class="stat-card">
+                <span class="label">Total Deputados Encontrados</span>
+                <span class="value" id="totalDeps">0</span>
+            </div>
+        </section>
+
+        <!-- GRID DEPUTADOS -->
+        <main class="deputy-grid" id="deputyGrid">
+            <!-- Cards injetados via JS -->
+            <div class="loading-spinner">Carregando dados...</div>
+        </main>
+    </div>
+
+    <footer class="fixed-footer">
+        <div style="display: flex; gap: 1rem; align-items: center;">
+            <p>Dev por Matheus Frade © 2025</p>
+            <span>|</span>
+            <a href="https://www.linkedin.com/in/matheus-frade/" target="_blank"><i class="ph ph-linkedin-logo"></i> LinkedIn</a>
+        </div>
+    </footer>
+
+    <!-- MODAL DETALHES (EMENDAS) -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-glass">
+            <button class="close-btn" onclick="closeModal()"><i class="ph ph-x"></i></button>
+            
+            <div class="modal-content" id="modalContent">
+                <!-- Conteúdo Dinâmico -->
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL EXTRA INFO (FRENTES E COMISSÕES) -->
+    <div class="modal-overlay" id="modalExtra" style="z-index: 1001;">
+        <div class="modal-glass">
+            <button class="close-btn" onclick="closeExtraModal()"><i class="ph ph-x"></i></button>
+            <div class="modal-content" id="modalExtraContent">
+                <!-- Conteúdo Dinâmico -->
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL SOBRE (DADOS E APIS) -->
+    <div class="modal-overlay" id="modalAbout" style="z-index: 1002;">
+        <div class="modal-glass" style="max-width: 600px; max-height: auto;">
+            <button class="close-btn" onclick="closeAboutModal()"><i class="ph ph-x"></i></button>
+            <div class="modal-content" style="text-align: center;">
+                <h2 style="margin-bottom: 1.5rem;"><i class="ph ph-database"></i> Fontes e Dados</h2>
+                
+                <div style="text-align: left; margin-bottom: 1.5rem; font-size: 0.9rem; line-height: 1.6; background: rgba(255,255,255,0.03); padding: 1rem; border-radius: 8px;">
+                    <p style="margin-bottom: 0.8rem;">Este aplicativo processa e exibe dados públicos extraídos oficialmente de fontes governamentais, centralizando informações para facilitar o acesso às informações:</p>
+                    <ul style="list-style: none; padding-left: 0.5rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                        <li>
+                            <strong style="color:var(--text-main)">1. API da Câmara:</strong> Traz o perfil, foto, biografia, frentes parlamentares, comissões e discursos.
+                        </li>
+                        <li>
+                            <strong style="color:var(--text-main)">2. Portal da Transparência:</strong> Traz os dados financeiros de emendas (valores empenhados, pagos e restos a pagar), detalhados por função e localidade.
+                        </li>
+                    </ul>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 0.8rem; margin-bottom: 1.5rem;">
+                    <a href="https://dadosabertos.camara.leg.br/" target="_blank" class="btn-action" style="justify-content: center;">
+                        <i class="ph ph-link"></i> Dados Abertos da Câmara dos Deputados
+                    </a>
+                    <a href="https://api.portaldatransparencia.gov.br/" target="_blank" class="btn-action" style="justify-content: center;">
+                        <i class="ph ph-link"></i> API do Portal da Transparência (CGU)
+                    </a>
+                </div>
+
+                <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 8px; font-size: 0.85rem; color: var(--text-muted); text-align: left;">
+                    <p style="margin-bottom: 0.5rem;"><strong>⚠️ Aviso de Disponibilidade:</strong></p>
+                    <p>
+                        A exibição dos dados depende da atualização das bases oficiais. Podem ocorrer <strong>lapsos temporais</strong> entre a execução orçamentária real e a disponibilização na API (ex: emendas do ano corrente podem não estar disponíveis ainda).
+                    </p>
+                </div>
+                
+                <p style="margin-top: 2rem; font-size: 0.8rem; color: var(--text-muted);">
+                    Desenvolvido por <strong>Matheus Frade</strong> © 2025
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js?v=2"></script>
+</body>
+</html>

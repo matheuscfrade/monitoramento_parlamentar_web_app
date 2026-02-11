@@ -10,9 +10,20 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=20">
     <!-- Ícones (Phosphor Icons) -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <!-- Script Stubs for Async Loading -->
+    <script>
+        // Define globals to avoid ReferenceError if scripts load before app.js
+        window.gisLoaded = function() { window.gisInitedFlag = true; if(window.onGisLoaded) window.onGisLoaded(); };
+        window.gapiLoaded = function() { window.gapiInitedFlag = true; if(window.onGapiLoaded) window.onGapiLoaded(); };
+    </script>
+    
+    <!-- Google Identity & Sheets API -->
+    <script src="https://accounts.google.com/gsi/client" async defer onload="gisLoaded()"></script>
+    <script src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
 </head>
 <body>
 
@@ -34,6 +45,10 @@
             <div class="search-bar">
                 <i class="ph ph-magnifying-glass"></i>
                 <input type="text" id="searchInput" placeholder="Busque por nome...">
+            </div>
+            
+            <div id="authContainer" class="auth-container">
+                <!-- Injetado via JS -->
             </div>
         </header>
 
@@ -139,7 +154,7 @@
                             <strong style="color:var(--text-main)">1. API da Câmara:</strong> Traz o perfil, foto, biografia, frentes parlamentares, comissões e discursos.
                         </li>
                         <li>
-                            <strong style="color:var(--text-main)">2. Portal da Transparência:</strong> Traz os dados financeiros de emendas (valores empenhados, pagos e restos a pagar), detalhados por função e localidade.
+                            <strong style="color:var(--text-main)">2. Portal da Transparência:</strong> Traz os valores empenhados de emendas, detalhados por função e localidade.
                         </li>
                     </ul>
                 </div>
@@ -168,6 +183,64 @@
         </div>
     </div>
 
-    <script src="app.js?v=4"></script>
+    <!-- Modal Interação -->
+    <div id="modalInteraction" class="modal-overlay">
+        <div class="modal-content" style="max-width: 500px">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h2 id="intModalTitle">Nova Interação</h2>
+                <button class="btn-close" onclick="closeInteractionModal()"><i class="ph ph-x"></i></button>
+            </div>
+            
+            <form id="interactionForm" style="margin-top:1rem; display:flex; flex-direction:column; gap:16px">
+                <input type="hidden" id="intDepName">
+                
+                <div>
+                    <label style="font-size:0.8rem; color:var(--text-muted); margin-bottom:4px; display:block">Data</label>
+                    <input type="date" id="intDate" class="modal-input" required style="width:100%">
+                </div>
+                
+                <div>
+                    <label style="font-size:0.8rem; color:var(--text-muted); margin-bottom:4px; display:block">Tipo</label>
+                    <select id="intType" class="modal-select" required style="width:100%">
+                        <option value="Reunião Presencial">Reunião Presencial</option>
+                        <option value="Reunião Virtual">Reunião Virtual</option>
+                        <option value="Telefonema">Telefonema</option>
+                        <option value="WhatsApp">WhatsApp</option>
+                        <option value="E-mail">E-mail</option>
+                        <option value="Ofício Enviado">Ofício Enviado</option>
+                        <option value="Evento">Evento</option>
+                        <option value="Outro">Outro</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label style="font-size:0.8rem; color:var(--text-muted); margin-bottom:4px; display:block">Status</label>
+                    <select id="intStatus" class="modal-select" required style="width:100%">
+                        <option value="Concluído">Concluído</option>
+                        <option value="Agendado">Agendado</option>
+                        <option value="Pendente">Pendente</option>
+                        <option value="Aguardando Retorno">Aguardando Retorno</option>
+                        <option value="Cancelado">Cancelado</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label style="font-size:0.8rem; color:var(--text-muted); margin-bottom:4px; display:block">Resumo</label>
+                    <textarea id="intResumo" class="modal-input" rows="3" required style="width:100%" placeholder="O que foi tratado..."></textarea>
+                </div>
+                
+                <div>
+                    <label style="font-size:0.8rem; color:var(--text-muted); margin-bottom:4px; display:block">Tags (separar por vírgula)</label>
+                    <input type="text" id="intTags" class="modal-input" placeholder="Ex: Saúde, Urgente" style="width:100%">
+                </div>
+                
+                <button type="submit" class="btn-action" style="justify-content:center; margin-top:0.5rem">
+                    <i class="ph ph-floppy-disk"></i> Salvar Interação
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js?v=20"></script>
 </body>
 </html>

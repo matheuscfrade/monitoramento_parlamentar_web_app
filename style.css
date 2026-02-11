@@ -39,6 +39,30 @@ body {
     align-items: center;
 }
 
+.auth-container {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.1);
+    padding: 4px 12px 4px 4px;
+    border-radius: 50px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.user-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+}
+
 .logo-area {
     display: flex;
     align-items: center;
@@ -536,22 +560,25 @@ body {
     background: var(--bg-card);
 }
 .data-table-container {
-    overflow-x: auto;
+    overflow-x: hidden; /* Prevent horizontal scroll */
     border-radius: 8px;
     border: 1px solid rgba(255,255,255,0.1);
 }
 
 .data-table {
     width: 100%;
+    table-layout: fixed; /* Force fixed width based on col percentages */
     border-collapse: collapse;
-    font-size: 0.75rem; /* Reduced from 0.9rem */
+    font-size: 0.75rem; 
 }
 
 .data-table th, .data-table td {
-    padding: 0.6rem; /* Reduced from 1rem */
-    text-align: center; /* Centralize ALL cells */
+    padding: 0.6rem; 
+    text-align: center;
     vertical-align: middle;
     border-bottom: 1px solid rgba(255,255,255,0.05);
+    word-wrap: break-word; /* Ensure compatibility */
+    overflow-wrap: break-word; /* Break long words */
 }
 
 .data-table th {
@@ -561,9 +588,9 @@ body {
     font-size: 0.7rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    text-align: center; /* Centered headers */
+    text-align: center; 
     vertical-align: middle;
-    white-space: nowrap; /* Tries to keep in one line */
+    white-space: normal; /* Allow wrapping in headers */
 }
 
 .data-table tbody tr:hover {
@@ -571,9 +598,10 @@ body {
 }
 
 .data-table .val-col {
-    text-align: center; /* Override right-align to center */
+    text-align: center; 
     font-family: monospace;
-    font-size: 0.85rem; /* Reduced from 1rem */
+    font-size: 0.85rem; 
+
 }
 
 .data-table tfoot td {
@@ -650,5 +678,75 @@ body {
 }
 
 .autocomplete-dropdown li:hover {
+
     background: rgba(59, 130, 246, 0.2);
+}
+
+/* Interactions Styles */
+.section-block {
+    margin-top: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.interactions-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 1rem;
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 8px;
+}
+
+.interaction-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 12px;
+    border: 1px solid rgba(255,255,255,0.05);
+}
+
+.int-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    font-size: 0.8rem;
+}
+
+.int-date {
+    color: var(--text-muted);
+}
+
+.int-badge {
+    background: rgba(0, 222, 100, 0.1);
+    color: var(--primary);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.int-status {
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.1);
+}
+.status-concluído, .status-concluido { color: #4ade80; background: rgba(74, 222, 128, 0.1); }
+.status-pendente { color: #facc15; background: rgba(250, 204, 21, 0.1); }
+.status-agendado { color: #60a5fa; background: rgba(96, 165, 250, 0.1); }
+.status-cancelado { color: #f87171; background: rgba(248, 113, 113, 0.1); }
+
+.int-resumo {
+    font-size: 0.9rem;
+    color: #e5e7eb;
+    margin-bottom: 6px;
+    line-height: 1.4;
+}
+
+.int-tags {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-style: italic;
 }
